@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 import os
@@ -17,6 +17,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "devops_db")
 
+# Connection URL for the specific database
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 
 # SQLAlchemy Setup
@@ -33,13 +34,27 @@ class UserSubmission(Base):
     phone = Column(String(20), nullable=False)
 
 # Create tables in the database
-# In a real DevOps flow, we might use migrations (Alembic), but here we keep it simple.
 def init_db():
+    # 1. Create database if it doesn't exist
+    try:
+        # Create a connection to the server without a specific database
+        root_url = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}"
+        root_engine = create_engine(root_url)
+        with root_engine.connect() as conn:
+            # We use text() for raw SQL execution in SQLAlchemy
+            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}"))
+            conn.commit()
+        root_engine.dispose()
+        print(f"Verified database '{DB_NAME}' exists.")
+    except Exception as e:
+        print(f"Note: Database verification skipped or failed: {e}")
+
+    # 2. Create tables based on our models
     try:
         Base.metadata.create_all(bind=engine)
         print("Database tables initialized successfully.")
     except Exception as e:
-        print(f"Error initializing database: {e}")
+        print(f"Error initializing tables: {e}")
 
 # --- FASTAPI APP SETUP ---
 app = FastAPI(title="DevOps Practice API")
