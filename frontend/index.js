@@ -15,7 +15,7 @@ form.addEventListener('submit', async (e) => {
     submitBtn.disabled = true;
 
     try {
-        const response = await fetch('http://localhost:8000/submit', {
+        const response = await fetch('http://13.60.172.199:8000/submit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
